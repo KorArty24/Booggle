@@ -25,21 +25,22 @@ public:
         int getScoreHuman();
         int getScoreComputer();
         Grid<char> gameboard;
-        Lexicon dictionary;
+        Lexicon _dictionary;
         string _boardText;
-        bool isMarked(int i, int j);
+        //bool isMarked(int i, int j);
         void MarkSquare(Point point);
         bool findword(int i, int j, string word);
         Point FindFirstLetter(string word);
-        bool FindWord(string word,string shortword, Point start, char ch, int dir);
+        bool FindWord(string word,string &shortword, Point start, char ch, int dir);
         void UnmarkSquare(Point point);
-        bool ComputerFindWord(Point start, int dir, string &word);
+        bool ComputerFindWord(Point start, int dir, string &word, Set<string> & result);
+       void printgameboard(Grid<char> gboard);
 
     // TODO: add any other member functions/variables necessary
     friend ostream& operator<<(ostream& out, Boggle& boggle);
 
 private:
-    // TODO: add any other member functions/variables necessary
+    Point adjacentPoint(Point start, int direct);
 };
 
 #endif // _boggle_h

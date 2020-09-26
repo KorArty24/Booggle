@@ -5,8 +5,36 @@
 // TODO: remove this comment header
 
 #include "lexicon.h"
-
+#include "iostream"
+#include <fstream>
+#include <string>
+#include <Boggle.h>
+#include "simpio.h"
+//using namespace std;
 void playOneGame(Lexicon& dictionary) {
     // TODO: implement
+    //dictionary.addWordsFromFile("dictionary.txt");
+    std::string word;
+    std::string wd="CENIHHRYUNEJNTAE";
+    //string boardtext=getLine ("Enter the board text");
+    //std::cout << boardtext;
+    //std:: cout << "boo";
+    //std::cout << dictionary.size();
+    Boggle bogl(dictionary,wd) ;
+    std::string gameboard_content=bogl.gameboard.toString2D();
+    std::cout << gameboard_content << endl;
+    std::cout << "Enter the word: ";
+    std::cin >> word;
+    if (bogl.humanWordSearch(word)) {
+        std::cout << "The word exists!";
+    } else {
+        cout << "This word doesn't exist";
+    }
+
+    std::cout << gameboard_content << endl;
+    //std::cout << bogl.gameboard.size() << endl;
+
+
+
 
 }
