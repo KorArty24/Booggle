@@ -1,8 +1,3 @@
-// This is a .h file you will edit and turn in.
-// We have provided a skeleton for you,
-// but you must finish it as described in the spec.
-// Also remove these comments here and add your own.
-// TODO: remove this comment header
 
 #ifndef _boggle_h
 #define _boggle_h
@@ -12,6 +7,7 @@
 #include "lexicon.h"
 #include <grid.h>
 #include "point.h"
+#include <vector>
 using namespace std;
 
 class Boggle {
@@ -25,14 +21,16 @@ public:
         int getScoreHuman();
         int getScoreComputer();
         Grid<char> gameboard;
+        Grid<int> markedSquares;
         Lexicon _dictionary;
         string _boardText;
         //bool isMarked(int i, int j);
         void MarkSquare(Point point);
         bool findword(int i, int j, string word);
-        Point FindFirstLetter(string word);
-        bool FindWord(string word,string &shortword, Point start, char ch, int dir);
+        std::vector<int> FindFirstLetter(string word);
+        bool FindWord(string word, Point start, char ch);
         void UnmarkSquare(Point point);
+        bool isMarked(Point point);
         bool ComputerFindWord(Point start, int dir, string &word, Set<string> & result);
        void printgameboard(Grid<char> gboard);
 

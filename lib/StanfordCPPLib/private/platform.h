@@ -5,6 +5,16 @@
  * the platform-specific parts of the StanfordCPPLib package.  This file is
  * logically part of the implementation and is not interesting to clients.
  *
+ * @version 2018/07/16
+ * - added gscrollbar_*
+ * @version 2018/06/24
+ * - added gformattedpane_get/setContentType
+ * @version 2018/06/23
+ * - added gformattedpane_*
+ * - added change events
+ * @version 2018/06/20
+ * - added url_downloadWithHeaders
+ * - added ginteractor_add/removeChangeListener
  * @version 2018/01/23
  * - added autograderunittest_runTestsInSeparateThreads
  * @version 2017/10/12
@@ -64,6 +74,7 @@
 #include <vector>
 #include "gevents.h"
 #include "gwindow.h"
+#include "map.h"
 #include "point.h"
 #include "sound.h"
 
@@ -159,14 +170,23 @@ public:
     std::string gfilechooser_showOpenDialog(const std::string& currentDir, const std::string& fileFilter);
     std::string gfilechooser_showSaveDialog(const std::string& currentDir, const std::string& fileFilter);
 
+    void gformattedpane_constructor(const GObject* const gobj);
+    std::string gformattedpane_getContentType(const GObject* const gobj);
+    std::string gformattedpane_getText(const GObject* const gobj);
+    void gformattedpane_setContentType(GObject* gobj, const std::string& contentType);
+    void gformattedpane_setPage(GObject* gobj, const std::string& url);
+    void gformattedpane_setText(GObject* gobj, const std::string& text);
+
     GDimension gimage_constructor(GObject* gobj, const std::string& filename);
 
     void ginteractor_addActionListener(GObject* gobj);
+    void ginteractor_addChangeListener(GObject* gobj);
     std::string ginteractor_getFont(const GObject* gobj);
     char ginteractor_getMnemonic(const GObject* gobj);
     GDimension ginteractor_getSize(const GObject* gobj);
     bool ginteractor_isEnabled(const GObject* gint);
     void ginteractor_removeActionListener(GObject* gobj);
+    void ginteractor_removeChangeListener(GObject* gobj);
     void ginteractor_requestFocus(GObject* gobj);
     void ginteractor_setAccelerator(GObject* gobj, const std::string& accelerator);
     void ginteractor_setActionCommand(GObject* gobj, const std::string& cmd);
@@ -230,6 +250,10 @@ public:
     void grect_constructor(GObject* gobj, double width, double height);
 
     void groundrect_constructor(GObject* gobj, double width, double height, double corner);
+
+    void gscrollbar_constructor(GObject* gobj, int orientation, int value, int extent, int min, int max);
+    int gscrollbar_getValue(GObject* gobj);
+    void gscrollbar_setValues(GObject* gobj, int value, int extent, int min, int max);
 
     void gslider_constructor(GObject* gobj, int min, int max, int value);
     int gslider_getMajorTickSpacing(const GObject* gobj);
@@ -377,6 +401,8 @@ public:
     void sound_play(Sound* sound);
 
     int url_download(const std::string& url, const std::string& filename);
+    int url_downloadWithHeaders(const std::string& url, const std::string& filename,
+                                const Map<std::string, std::string>& headers);
 };
 
 /* free function to get a reference to the singleton Platform instance */

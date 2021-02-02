@@ -14,24 +14,24 @@
 void playOneGame(Lexicon& dictionary) {
     // TODO: implement
     //dictionary.addWordsFromFile("dictionary.txt");
-    std::string word;
-    std::string wd="CENIHHRYUNEJNTAE";
+    string word;
+    string wd="FYCLIOMGORILHJHU";
     //string boardtext=getLine ("Enter the board text");
     //std::cout << boardtext;
-    //std:: cout << "boo";
     //std::cout << dictionary.size();
-    Boggle bogl(dictionary,wd) ;
+    Boggle bogl(dictionary,wd);
     std::string gameboard_content=bogl.gameboard.toString2D();
     std::cout << gameboard_content << endl;
     std::cout << "Enter the word: ";
     std::cin >> word;
+    word=toUpperCase(word);
     if (bogl.humanWordSearch(word)) {
         std::cout << "The word exists!";
     } else {
         cout << "This word doesn't exist";
     }
 
-    std::cout << gameboard_content << endl;
+   // std::cout << gameboard_content << endl;
     //std::cout << bogl.gameboard.size() << endl;
 
 

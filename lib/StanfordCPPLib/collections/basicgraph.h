@@ -6,9 +6,13 @@
  * together in lecture.  We also declare BasicGraph, an instantiation of
  * Stanford's Graph class using Vertex and Edge as its type parameters.
  *
- * See BasicGraph.cpp for implementation of each member.
+ * Most members are implemented in this file, since the class is a template.
+ * See BasicGraph.cpp for implementation of some non-template members.
  *
  * @author Marty Stepp
+ * @version 2018/03/10
+ * - added methods front, back, toMap
+ * - added operator << for various collections of Vertex* and Edge*
  * @version 2018/02/28
  * - compiler flag to enable/disable Vertex fields like visited, previous
  * @version 2017/11/14
@@ -71,8 +75,11 @@
 #include "gmath.h"
 #include "graph.h"
 #include "grid.h"
+#include "hashset.h"
+#include "linkedlist.h"
 #include "observable.h"
 #include "set.h"
+#include "vector.h"
 
 /*
  * Forward declarations of Vertex/Edge structures so that they can refer
@@ -219,7 +226,7 @@ public:
      * "Arc{start=r12c42, finish=r12c41, cost=0.75}".
      */
     std::string toString() const;
-    
+
     /*
      * Copy assignment operator (rule of three).
      */
@@ -304,6 +311,16 @@ public:
     void removeEdge(EdgeGen<V, E>* e, bool directed = true);
     void removeVertex(const std::string& name);
     void removeVertex(VertexGen<V, E>* v);
+
+    /*
+     * Returns a Map representing an adjacency list equivalent to this graph.
+     * Each vertex's name is a key in the map, and its neighboring vertexes' names
+     * are stored in a Set as the value associated with that key.
+     * It should be noted that this member does not preserve the weights of the edges
+     * between the neighboring vertexes, so it is not ideal for use with weighted graphs.
+     */
+    Map<std::string, Set<std::string>> toMap() const;
+
     int vertexCount() const;
 
     /*
@@ -795,6 +812,19 @@ void BasicGraphGen<V, E>::removeVertex(VertexGen<V, E>* v) {
 }
 
 template <typename V, typename E>
+Map<std::string, Set<std::string>> BasicGraphGen<V, E>::toMap() const {
+    Map<std::string, Set<std::string>> result;
+    for (Vertex* v : this->getVertexSet()) {
+        Set<std::string> neighborSet;
+        for (Vertex* neighbor : this->getNeighbors(v)) {
+            neighborSet += neighbor->name;
+        }
+        result[v->name] = neighborSet;
+    }
+    return result;
+}
+
+template <typename V, typename E>
 int BasicGraphGen<V, E>::vertexCount() const {
     return this->nodeCount();
 }
@@ -844,6 +874,270 @@ int hashCode(const BasicGraphGen<V, E>& graph) {
         code = hashMultiplier() * code + hashCode(e->finish->name);
     }
     return (code & hashMask());
+}
+
+/*
+ * Overloaded operator to print a set of edge pointers.
+ * Normally it is unwise to override operators for printing pointers,
+ * because the pointer could be null or garbage.
+ * But in this case we have decided that it is better for students if their
+ * attempts to print collections of vertexes and edges are easy to read.
+ */
+template <typename V, typename E>
+std::ostream& operator <<(std::ostream& out, const HashSet<EdgeGen<V, E>*>& sete) {
+    out << "{";
+    if (!sete.isEmpty()) {
+        bool first = true;
+        for (EdgeGen<V, E>* e : sete) {
+            if (!first) {
+                out << ", ";
+            }
+            first = false;
+            if (e) {
+                if (e->start) {
+                    out << e->start->name;
+                } else {
+                    out << "null";
+                }
+                out << " -> ";
+                if (e->finish) {
+                    out << e->finish->name;
+                } else {
+                    out << "null";
+                }
+            } else {
+                out << "null";
+            }
+        }
+    }
+    out << "}";
+    return out;
+}
+
+/*
+ * Overloaded operator to print a set of vertex pointers.
+ * Normally it is unwise to override operators for printing pointers,
+ * because the pointer could be null or garbage.
+ * But in this case we have decided that it is better for students if their
+ * attempts to print collections of vertexes and edges are easy to read.
+ */
+template <typename V, typename E>
+std::ostream& operator <<(std::ostream& out, const HashSet<VertexGen<V, E>*>& setv) {
+    out << "{";
+    if (!setv.isEmpty()) {
+        bool first = true;
+        for (VertexGen<V, E>* v : setv) {
+            if (!first) {
+                out << ", ";
+            }
+            first = false;
+            if (v) {
+                out << v->name;
+            } else {
+                out << "null";
+            }
+        }
+    }
+    out << "}";
+    return out;
+}
+
+/*
+ * Overloaded operator to print a list of edge pointers.
+ * Normally it is unwise to override operators for printing pointers,
+ * because the pointer could be null or garbage.
+ * But in this case we have decided that it is better for students if their
+ * attempts to print collections of vertexes and edges are easy to read.
+ */
+template <typename V, typename E>
+std::ostream& operator <<(std::ostream& out, const LinkedList<EdgeGen<V, E>*>& liste) {
+    out << "{";
+    if (!liste.isEmpty()) {
+        bool first = true;
+        for (EdgeGen<V, E>* e : liste) {
+            if (!first) {
+                out << ", ";
+            }
+            first = false;
+            if (e) {
+                if (e->start) {
+                    out << e->start->name;
+                } else {
+                    out << "null";
+                }
+                out << " -> ";
+                if (e->finish) {
+                    out << e->finish->name;
+                } else {
+                    out << "null";
+                }
+            } else {
+                out << "null";
+            }
+        }
+    }
+    out << "}";
+    return out;
+}
+
+/*
+ * Overloaded operator to print a list of vertex pointers.
+ * Normally it is unwise to override operators for printing pointers,
+ * because the pointer could be null or garbage.
+ * But in this case we have decided that it is better for students if their
+ * attempts to print collections of vertexes and edges are easy to read.
+ */
+template <typename V, typename E>
+std::ostream& operator <<(std::ostream& out, const LinkedList<VertexGen<V, E>*>& lst) {
+    out << "{";
+    if (!lst.isEmpty()) {
+        bool first = true;
+        for (VertexGen<V, E>* v : lst) {
+            if (!first) {
+                out << ", ";
+            }
+            first = false;
+            if (v) {
+                out << v->name;
+            } else {
+                out << "null";
+            }
+        }
+    }
+    out << "}";
+    return out;
+}
+
+/*
+ * Overloaded operator to print a set of edge pointers.
+ * Normally it is unwise to override operators for printing pointers,
+ * because the pointer could be null or garbage.
+ * But in this case we have decided that it is better for students if their
+ * attempts to print collections of vertexes and edges are easy to read.
+ */
+template <typename V, typename E>
+std::ostream& operator <<(std::ostream& out, const Set<EdgeGen<V, E>*>& sete) {
+    out << "{";
+    if (!sete.isEmpty()) {
+        bool first = true;
+        for (EdgeGen<V, E>* e : sete) {
+            if (!first) {
+                out << ", ";
+            }
+            first = false;
+            if (e) {
+                if (e->start) {
+                    out << e->start->name;
+                } else {
+                    out << "null";
+                }
+                out << " -> ";
+                if (e->finish) {
+                    out << e->finish->name;
+                } else {
+                    out << "null";
+                }
+            } else {
+                out << "null";
+            }
+        }
+    }
+    out << "}";
+    return out;
+}
+
+/*
+ * Overloaded operator to print a set of vertex pointers.
+ * Normally it is unwise to override operators for printing pointers,
+ * because the pointer could be null or garbage.
+ * But in this case we have decided that it is better for students if their
+ * attempts to print collections of vertexes and edges are easy to read.
+ */
+template <typename V, typename E>
+std::ostream& operator <<(std::ostream& out, const Set<VertexGen<V, E>*>& setv) {
+    out << "{";
+    if (!setv.isEmpty()) {
+        bool first = true;
+        for (VertexGen<V, E>* v : setv) {
+            if (!first) {
+                out << ", ";
+            }
+            first = false;
+            if (v) {
+                out << v->name;
+            } else {
+                out << "null";
+            }
+        }
+    }
+    out << "}";
+    return out;
+}
+
+/*
+ * Overloaded operator to print a vector of edge pointers.
+ * Normally it is unwise to override operators for printing pointers,
+ * because the pointer could be null or garbage.
+ * But in this case we have decided that it is better for students if their
+ * attempts to print collections of vertexes and edges are easy to read.
+ */
+template <typename V, typename E>
+std::ostream& operator <<(std::ostream& out, const Vector<EdgeGen<V, E>*>& vece) {
+    out << "{";
+    if (!vece.isEmpty()) {
+        bool first = true;
+        for (EdgeGen<V, E>* e : vece) {
+            if (!first) {
+                out << ", ";
+            }
+            first = false;
+            if (e) {
+                if (e->start) {
+                    out << e->start->name;
+                } else {
+                    out << "null";
+                }
+                out << " -> ";
+                if (e->finish) {
+                    out << e->finish->name;
+                } else {
+                    out << "null";
+                }
+            } else {
+                out << "null";
+            }
+        }
+    }
+    out << "}";
+    return out;
+}
+
+/*
+ * Overloaded operator to print a vector of vertex pointers.
+ * Normally it is unwise to override operators for printing pointers,
+ * because the pointer could be null or garbage.
+ * But in this case we have decided that it is better for students if their
+ * attempts to print collections of vertexes and edges are easy to read.
+ */
+template <typename V, typename E>
+std::ostream& operator <<(std::ostream& out, const Vector<VertexGen<V, E>*>& vec) {
+    out << "{";
+    if (!vec.isEmpty()) {
+        bool first = true;
+        for (VertexGen<V, E>* v : vec) {
+            if (!first) {
+                out << ", ";
+            }
+            first = false;
+            if (v) {
+                out << v->name;
+            } else {
+                out << "null";
+            }
+        }
+    }
+    out << "}";
+    return out;
 }
 
 #include "private/init.h"   // ensure that Stanford C++ lib is initialized

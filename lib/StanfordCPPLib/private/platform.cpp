@@ -4,6 +4,18 @@
  * This file implements the platform interface by passing commands to
  * a Java back end that manages the display.
  * 
+ * @version 2018/07/16
+ * - added parsing of scroll events
+ * @version 2018/07/08
+ * - bug fix for GTimer deletion
+ * @version 2018/06/24
+ * - added hyperlink events
+ * @version 2018/06/23
+ * - added change events
+ * @version 2018/06/20
+ * - added mouse entered, exited, wheel moved events
+ * - added url_downloadWithHeaders
+ * - added ginteractor_add/removeChangeListener
  * @version 2017/10/12
  * - added gtextlabel_create
  * - added gwindow_setRepaintImmediately
@@ -218,8 +230,11 @@ static void getStatus();
 static void initPipe();
 static GEvent parseActionEvent(TokenScanner& scanner, EventType type);
 static GEvent parseEvent(const std::string& line);
+static GEvent parseChangeEvent(TokenScanner& scanner, EventType type);
+static GEvent parseHyperlinkEvent(TokenScanner& scanner, EventType type);
 static GEvent parseKeyEvent(TokenScanner& scanner, EventType type);
 static GEvent parseMouseEvent(TokenScanner& scanner, EventType type);
+static GEvent parseScrollEvent(TokenScanner& scanner, EventType type);
 static GEvent parseServerEvent(TokenScanner& scanner, EventType type);
 static GEvent parseTableEvent(TokenScanner& scanner, EventType type);
 static GEvent parseTimerEvent(TokenScanner& scanner, EventType type);
@@ -233,7 +248,7 @@ static double scanDouble(TokenScanner& scanner);
 static int scanInt(TokenScanner& scanner);
 static Point scanPoint(const std::string& str);
 static GRectangle scanRectangle(const std::string& str);
-
+static void writeQuotedMap(std::ostream& os, const Map<std::string, std::string>& map);
 
 /* Implementation of the Platform class */
 
@@ -754,7 +769,7 @@ void Platform::gwindow_saveCanvasPixels(const GWindow& gw, const std::string& fi
     writeQuotedString(os, filename);
     os << ")";
     putPipe(os.str());
-    getResult();   // wait for "OK"
+    getStatus();   // wait for "OK"
 }
 
 void Platform::gwindow_setSize(const GWindow& gw, int width, int height) {
@@ -870,34 +885,34 @@ void Platform::gtimer_pause(double milliseconds) {
 }
 
 void Platform::gtimer_constructor(const GTimer& timer, double delay) {
-    std::ostringstream os;
-    os << timer.gtd;
-    std::string id = os.str();
+    std::string id = timer.getID();
     STATIC_VARIABLE(timerTable).put(id, timer.gtd);
-    os.str("");
+    std::ostringstream os;
     os << "GTimer.create(\"" << id << "\", " << delay << ")";
     putPipe(os.str());
 }
 
 void Platform::gtimer_delete(const GTimer& timer) {
-    std::ostringstream os;
-    os << timer.gtd;
-    std::string id = os.str();
-    STATIC_VARIABLE(timerTable).remove(id);
-    os.str("");
-    os << "GTimer.deleteTimer(\"" << id << "\")";
-    putPipe(os.str());
+    std::string id = timer.getID();
+    if (STATIC_VARIABLE(timerTable).containsKey(id)) {
+        STATIC_VARIABLE(timerTable).remove(id);
+        std::ostringstream os;
+        os << "GTimer.deleteTimer(\"" << id << "\")";
+        putPipe(os.str());
+    }
 }
 
 void Platform::gtimer_start(const GTimer& timer) {
+    std::string id = timer.getID();
     std::ostringstream os;
-    os << "GTimer.startTimer(\"" << timer.gtd << "\")";
+    os << "GTimer.startTimer(\"" << id << "\")";
     putPipe(os.str());
 }
 
 void Platform::gtimer_stop(const GTimer& timer) {
+    std::string id = timer.getID();
     std::ostringstream os;
-    os << "GTimer.stopTimer(\"" << timer.gtd << "\")";
+    os << "GTimer.stopTimer(\"" << id << "\")";
     putPipe(os.str());
 }
 
@@ -960,6 +975,21 @@ int Platform::url_download(const std::string& url, const std::string& filename) 
     writeQuotedString(os, urlEncode(url));
     os << ",";
     writeQuotedString(os, urlEncode(filename));
+    os << ")";
+    putPipe(os.str());
+    std::string result = getResult();
+    return stringToInteger(result);
+}
+
+int Platform::url_downloadWithHeaders(const std::string& url, const std::string& filename,
+                                      const Map<std::string, std::string>& headers) {
+    std::ostringstream os;
+    os << "URL.downloadWithHeaders(";
+    writeQuotedString(os, urlEncode(url));
+    os << ",";
+    writeQuotedString(os, urlEncode(filename));
+    os << ",";
+    writeQuotedMap(os, headers);
     os << ")";
     putPipe(os.str());
     std::string result = getResult();
@@ -1405,7 +1435,7 @@ void Platform::diffimage_compareWindowToImage(const GWindow& gwindow, const std:
     writeQuotedString(os, file2);
     os << ", " << std::boolalpha << ignoreWindowSize << ")";
     putPipe(os.str());
-    getResult();   // read "ok"; modal dialog
+    getStatus();   // read "ok"; modal dialog
 }
 
 void Platform::diffimage_show(const std::string& file1, const std::string& file2) {
@@ -1416,7 +1446,7 @@ void Platform::diffimage_show(const std::string& file1, const std::string& file2
     writeQuotedString(os, file2);
     os << ")";
     putPipe(os.str());
-    getResult();   // read "ok"; modal dialog
+    getStatus();   // read "ok"; modal dialog
 }
 
 void Platform::gbufferedimage_constructor(GObject* gobj, double x, double y,
@@ -1542,9 +1572,21 @@ void Platform::ginteractor_addActionListener(GObject* gobj) {
     putPipe(os.str());
 }
 
+void Platform::ginteractor_addChangeListener(GObject* gobj) {
+    std::ostringstream os;
+    os << "GInteractor.addChangeListener(\"" << gobj << "\")";
+    putPipe(os.str());
+}
+
 void Platform::ginteractor_removeActionListener(GObject* gobj) {
     std::ostringstream os;
     os << "GInteractor.removeActionListener(\"" << gobj << "\")";
+    putPipe(os.str());
+}
+
+void Platform::ginteractor_removeChangeListener(GObject* gobj) {
+    std::ostringstream os;
+    os << "GInteractor.removeChangeListener(\"" << gobj << "\")";
     putPipe(os.str());
 }
 
@@ -1637,6 +1679,34 @@ void Platform::gradiobutton_setSelected(GObject* gobj, bool state) {
     os << "GRadioButton.setSelected(\"" << gobj << "\", "
        << std::boolalpha << state << ")";
     putPipe(os.str());
+}
+
+void Platform::gscrollbar_constructor(GObject* gobj, int orientation, int value, int extent, int min, int max) {
+    std::ostringstream os;
+    os << gobj;
+    STATIC_VARIABLE(sourceTable).put(os.str(), gobj);
+    os.str("");
+    os << "GScrollBar.create(\"" << gobj << "\", "
+       << orientation << ", " << value << ", " << extent << ", "
+       << min << ", " << max << ")";
+    putPipe(os.str());
+}
+
+int Platform::gscrollbar_getValue(GObject* gobj) {
+    std::ostringstream os;
+    os << "GScrollBar.getValue(\"" << gobj << "\")";
+    putPipe(os.str());
+    std::string result = getResult();
+    return stringToInteger(result);
+}
+
+void Platform::gscrollbar_setValues(GObject* gobj, int value, int extent, int min, int max) {
+    std::ostringstream os;
+    os << "GScrollBar.setValues(\"" << gobj << "\", "
+       << value << ", " << extent
+       << min << ", " << max << ")";
+    putPipe(os.str());
+    getStatus();
 }
 
 void Platform::gslider_constructor(GObject* gobj, int min, int max, int value) {
@@ -1947,6 +2017,9 @@ void Platform::gtable_setRowForeground(GObject* gobj, int row, const std::string
 
 void Platform::gtextarea_create(GObject* gobj, double width, double height) {
     std::ostringstream os;
+    os << gobj;
+    STATIC_VARIABLE(sourceTable).put(os.str(), gobj);
+    os.str("");
     os << "GTextArea.create(\"" << gobj << "\", " << width << ", "
        << height << ")";
     putPipe(os.str());
@@ -2179,6 +2252,53 @@ std::string Platform::gfilechooser_showSaveDialog(const std::string& currentDir,
     return getResult();
 }
 
+void Platform::gformattedpane_constructor(const GObject* const gobj) {
+    std::ostringstream os;
+    os << "GFormattedPane.create(\"" << gobj << "\")";
+    putPipe(os.str());
+}
+
+std::string Platform::gformattedpane_getContentType(const GObject* const gobj) {
+    std::ostringstream os;
+    os << "GFormattedPane.getContentType(\"" << gobj << "\")";
+    putPipe(os.str());
+    return getResult();
+}
+
+std::string Platform::gformattedpane_getText(const GObject* const gobj) {
+    std::ostringstream os;
+    os << "GFormattedPane.getText(\"" << gobj << "\")";
+    putPipe(os.str());
+    return getResult();
+}
+
+void Platform::gformattedpane_setContentType(GObject* gobj, const std::string& contentType) {
+    std::ostringstream os;
+    os << "GFormattedPane.setContentType(\"" << gobj << "\", ";
+    writeQuotedString(os, contentType);
+    os << ")";
+    putPipe(os.str());
+    getStatus();
+}
+
+void Platform::gformattedpane_setPage(GObject* gobj, const std::string& url) {
+    std::ostringstream os;
+    os << "GFormattedPane.setPage(\"" << gobj << "\", ";
+    writeQuotedString(os, urlEncode(url));
+    os << ")";
+    putPipe(os.str());
+    getStatus();
+}
+
+void Platform::gformattedpane_setText(GObject* gobj, const std::string& text) {
+    std::ostringstream os;
+    os << "GFormattedPane.setText(\"" << gobj << "\", ";
+    writeQuotedString(os, urlEncode(text));
+    os << ")";
+    putPipe(os.str());
+    getStatus();
+}
+
 int Platform::goptionpane_showConfirmDialog(const std::string& message, const std::string& title, int type) {
     std::ostringstream os;
     os << "GOptionPane.showConfirmDialog(";
@@ -2213,7 +2333,7 @@ void Platform::goptionpane_showMessageDialog(const std::string& message, const s
     os << "," << type;
     os << ")";
     putPipe(os.str());
-    getResult();   // wait for dialog to close
+    getStatus();   // wait for dialog to close
 }
 
 int Platform::goptionpane_showOptionDialog(const std::string& message,
@@ -2256,7 +2376,7 @@ void Platform::goptionpane_showTextFileDialog(const std::string& message,
     os << "," << cols;
     os << ")";
     putPipe(os.str());
-    getResult();   // wait for dialog to close
+    getStatus();   // wait for dialog to close
 }
 
 std::string Platform::clipboard_get() {
@@ -2392,7 +2512,7 @@ void Platform::note_play(const std::string& noteString) {
     writeQuotedString(os, urlEncode(noteString));
     os << ")";
     putPipe(os.str());
-    getResult();   // wait for playing to be done
+    getStatus();   // wait for playing to be done
 }
 
 void Platform::autograderinput_addButton(const std::string& text, const std::string& input) {
@@ -2970,11 +3090,13 @@ static std::string getResult(bool consumeAcks, bool stopOnEvent,
         } else if (isEvent) {
             // a Java-originated event; enqueue it to process here
             GEvent event = parseEvent(line.substr(6));
-            STATIC_VARIABLE(eventQueue).enqueue(event);
-            if (stopOnEvent ||
-                    (event.getEventClass() == WINDOW_EVENT && event.getEventType() == CONSOLE_CLOSED
-                    && caller == "getLineConsole")) {
-                return "";
+            if (event.isValid()) {
+                STATIC_VARIABLE(eventQueue).enqueue(event);
+                if (stopOnEvent ||
+                        (event.getEventClass() == WINDOW_EVENT && event.getEventType() == CONSOLE_CLOSED
+                        && caller == "getLineConsole")) {
+                    return "";
+                }
             }
         } else {
             if (line.find("\tat ") != std::string::npos || line.find("   at ") != std::string::npos) {
@@ -3111,12 +3233,26 @@ static GEvent parseEvent(const std::string& line) {
         return parseMouseEvent(scanner, MOUSE_MOVED);
     } else if (name == "mouseDragged") {
         return parseMouseEvent(scanner, MOUSE_DRAGGED);
+    } else if (name == "mouseEntered") {
+        return parseMouseEvent(scanner, MOUSE_ENTERED);
+    } else if (name == "mouseExited") {
+        return parseMouseEvent(scanner, MOUSE_EXITED);
+    } else if (name == "mouseWheelDown") {
+        return parseMouseEvent(scanner, MOUSE_WHEEL_DOWN);
+    } else if (name == "mouseWheelUp") {
+        return parseMouseEvent(scanner, MOUSE_WHEEL_UP);
     } else if (name == "keyPressed") {
         return parseKeyEvent(scanner, KEY_PRESSED);
     } else if (name == "keyReleased") {
         return parseKeyEvent(scanner, KEY_RELEASED);
     } else if (name == "keyTyped") {
         return parseKeyEvent(scanner, KEY_TYPED);
+    } else if (name == "scrollPerformed") {
+        return parseScrollEvent(scanner, SCROLL_PERFORMED);
+    } else if (name == "stateChanged") {
+        return parseChangeEvent(scanner, STATE_CHANGED);
+    } else if (name == "hyperlinkClicked") {
+        return parseHyperlinkEvent(scanner, HYPERLINK_CLICKED);
     } else if (name == "actionPerformed") {
         return parseActionEvent(scanner, ACTION_PERFORMED);
     } else if (name == "serverRequest") {
@@ -3206,6 +3342,30 @@ static GEvent parseMouseEvent(TokenScanner& scanner, EventType type) {
     return e;
 }
 
+static GEvent parseChangeEvent(TokenScanner& scanner, EventType type) {
+    scanner.verifyToken("(");
+    std::string id = scanner.getStringValue(scanner.nextToken());
+    scanner.verifyToken(",");
+    double time = scanDouble(scanner);
+    scanner.verifyToken(")");
+    GChangeEvent e(type, STATIC_VARIABLE(sourceTable).get(id));
+    e.setEventTime(time);
+    return e;
+}
+
+static GEvent parseHyperlinkEvent(TokenScanner& scanner, EventType type) {
+    scanner.verifyToken("(");
+    std::string id = scanner.getStringValue(scanner.nextToken());
+    scanner.verifyToken(",");
+    std::string url = urlDecode(scanner.getStringValue(scanner.nextToken()));
+    scanner.verifyToken(",");
+    double time = scanDouble(scanner);
+    scanner.verifyToken(")");
+    GHyperlinkEvent e(type, STATIC_VARIABLE(sourceTable).get(id), url);
+    e.setEventTime(time);
+    return e;
+}
+
 static GEvent parseKeyEvent(TokenScanner& scanner, EventType type) {
     scanner.verifyToken("(");
     std::string id = scanner.getStringValue(scanner.nextToken());
@@ -3221,6 +3381,17 @@ static GEvent parseKeyEvent(TokenScanner& scanner, EventType type) {
     GKeyEvent e(type, GWindow(STATIC_VARIABLE(windowTable).get(id)), char(keyChar), keyCode);
     e.setEventTime(time);
     e.setModifiers(modifiers);
+    return e;
+}
+
+static GEvent parseScrollEvent(TokenScanner& scanner, EventType type) {
+    scanner.verifyToken("(");
+    std::string id = scanner.getStringValue(scanner.nextToken());
+    scanner.verifyToken(",");
+    double time = scanDouble(scanner);
+    scanner.verifyToken(")");
+    GScrollEvent e(type, STATIC_VARIABLE(sourceTable).get(id));
+    e.setEventTime(time);
     return e;
 }
 
@@ -3269,9 +3440,16 @@ static GEvent parseTimerEvent(TokenScanner& scanner, EventType type) {
     scanner.verifyToken(",");
     double time = scanDouble(scanner);
     scanner.verifyToken(")");
-    GTimerEvent e(type, GTimer(STATIC_VARIABLE(timerTable).get(id)));
-    e.setEventTime(time);
-    return e;
+
+    if (STATIC_VARIABLE(timerTable).containsKey(id)) {
+        GTimerEvent e(type, GTimer(STATIC_VARIABLE(timerTable).get(id)));
+        e.setEventTime(time);
+        return e;
+    } else {
+        // invalid timer ID; return an empty/invalid event
+        GTimerEvent e;
+        return e;
+    }
 }
 
 static GEvent parseWindowEvent(TokenScanner& scanner, EventType type) {
@@ -3368,6 +3546,21 @@ static GRectangle scanRectangle(const std::string& str) {
     double height = scanDouble(scanner);
     scanner.verifyToken(")");
     return GRectangle(x, y, width, height);
+}
+
+static void writeQuotedMap(std::ostream& os, const Map<std::string, std::string>& map) {
+    os << "{";
+    bool first = true;
+    for (std::string key : map) {
+        if (!first) {
+            os << ", ";
+        }
+        writeQuotedString(os, urlEncode(key));
+        os << ":";
+        writeQuotedString(os, urlEncode(map[key]));
+        first = false;
+    }
+    os << "}";
 }
 
 namespace stanfordcpplib {

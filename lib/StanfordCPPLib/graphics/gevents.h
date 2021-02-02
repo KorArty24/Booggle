@@ -6,6 +6,15 @@
  * the Java event model.
  * <include src="pictures/ClassHierarchies/GEventHierarchy-h.html">
  * 
+ * @version 2018/07/16
+ * - added scroll events
+ * @version 2018/06/24
+ * - added hyperlink events
+ * @version 2018/06/23
+ * - added change events
+ * - ANY_EVENT bug fix
+ * @version 2018/06/20
+ * - added mouse entered, exit, wheel events
  * @version 2016/11/26
  * - added WINDOW_CLOSING event
  * - added isCtrlOrCommandKeyDown
@@ -37,16 +46,32 @@
  * selects any event.
  */
 enum EventClassType {
-    NULL_EVENT   = 0x000,
-    ACTION_EVENT = 0x010,
-    KEY_EVENT    = 0x020,
-    TIMER_EVENT  = 0x040,
-    WINDOW_EVENT = 0x080,
-    MOUSE_EVENT  = 0x100,
-    CLICK_EVENT  = 0x200,
-    TABLE_EVENT  = 0x400,
-    SERVER_EVENT = 0x800,
-    ANY_EVENT    = 0x3F0
+    NULL_EVENT      = 0x0000,
+    ACTION_EVENT    = 0x0010,
+    KEY_EVENT       = 0x0020,
+    TIMER_EVENT     = 0x0040,
+    WINDOW_EVENT    = 0x0080,
+    MOUSE_EVENT     = 0x0100,
+    CLICK_EVENT     = 0x0200,
+    TABLE_EVENT     = 0x0400,
+    SERVER_EVENT    = 0x0800,
+    CHANGE_EVENT    = 0x1000,
+    HYPERLINK_EVENT = 0x2000,
+    SCROLL_EVENT    = 0x4000,
+
+    // ANY_EVENT should be the logical OR of all other event types,
+    // to indicate that all/any events should be matched
+    ANY_EVENT    = ACTION_EVENT
+                 | KEY_EVENT
+                 | TIMER_EVENT
+                 | WINDOW_EVENT
+                 | MOUSE_EVENT
+                 | CLICK_EVENT
+                 | TABLE_EVENT
+                 | SERVER_EVENT
+                 | CHANGE_EVENT
+                 | HYPERLINK_EVENT
+                 | SCROLL_EVENT
 };
 
 /*
@@ -55,34 +80,43 @@ enum EventClassType {
  * This enumeration type defines the event types for all events.
  */
 typedef enum {
-    WINDOW_CLOSED    = WINDOW_EVENT + 1,
-    WINDOW_RESIZED   = WINDOW_EVENT + 2,
-    CONSOLE_CLOSED   = WINDOW_EVENT + 3,
-    WINDOW_CLOSING   = WINDOW_EVENT + 4,
+    WINDOW_CLOSED       = WINDOW_EVENT + 1,
+    WINDOW_RESIZED      = WINDOW_EVENT + 2,
+    CONSOLE_CLOSED      = WINDOW_EVENT + 3,
+    WINDOW_CLOSING      = WINDOW_EVENT + 4,
 
-    ACTION_PERFORMED = ACTION_EVENT + 1,
+    ACTION_PERFORMED    = ACTION_EVENT + 1,
 
-    MOUSE_CLICKED    = MOUSE_EVENT + 1,
-    MOUSE_PRESSED    = MOUSE_EVENT + 2,
-    MOUSE_RELEASED   = MOUSE_EVENT + 3,
-    MOUSE_MOVED      = MOUSE_EVENT + 4,
-    MOUSE_DRAGGED    = MOUSE_EVENT + 5,
+    MOUSE_CLICKED       = MOUSE_EVENT + 1,
+    MOUSE_PRESSED       = MOUSE_EVENT + 2,
+    MOUSE_RELEASED      = MOUSE_EVENT + 3,
+    MOUSE_MOVED         = MOUSE_EVENT + 4,
+    MOUSE_DRAGGED       = MOUSE_EVENT + 5,
+    MOUSE_ENTERED       = MOUSE_EVENT + 6,
+    MOUSE_EXITED        = MOUSE_EVENT + 7,
+    MOUSE_WHEEL_DOWN    = MOUSE_EVENT + 8,
+    MOUSE_WHEEL_UP      = MOUSE_EVENT + 9,
 
-    KEY_PRESSED      = KEY_EVENT + 1,
-    KEY_RELEASED     = KEY_EVENT + 2,
-    KEY_TYPED        = KEY_EVENT + 3,
+    KEY_PRESSED         = KEY_EVENT + 1,
+    KEY_RELEASED        = KEY_EVENT + 2,
+    KEY_TYPED           = KEY_EVENT + 3,
 
-    TIMER_TICKED     = TIMER_EVENT + 1,
+    TIMER_TICKED        = TIMER_EVENT + 1,
 
-    TABLE_UPDATED    = TABLE_EVENT + 1,
-    TABLE_SELECTED   = TABLE_EVENT + 2,
-    TABLE_EDIT_BEGIN = TABLE_EVENT + 3,
+    TABLE_UPDATED       = TABLE_EVENT + 1,
+    TABLE_SELECTED      = TABLE_EVENT + 2,
+    TABLE_EDIT_BEGIN    = TABLE_EVENT + 3,
     TABLE_REPLACE_BEGIN = TABLE_EVENT + 4,   // like an edit but wipes out previous value
-    TABLE_CUT        = TABLE_EVENT + 5,      // clipboard stuff
-    TABLE_COPY       = TABLE_EVENT + 6,
-    TABLE_PASTE      = TABLE_EVENT + 7,
+    TABLE_CUT           = TABLE_EVENT + 5,   // clipboard stuff
+    TABLE_COPY          = TABLE_EVENT + 6,
+    TABLE_PASTE         = TABLE_EVENT + 7,
 
-    SERVER_REQUEST   = SERVER_EVENT + 1
+    SERVER_REQUEST      = SERVER_EVENT + 1,
+
+    STATE_CHANGED       = CHANGE_EVENT + 1,
+
+    HYPERLINK_CLICKED   = HYPERLINK_EVENT + 1,
+    SCROLL_PERFORMED    = SCROLL_EVENT + 1
 } EventType;
 
 /*
@@ -139,9 +173,12 @@ enum KeyCodes {
 
 /* Forward definitions */
 class GActionEvent;
+class GChangeEvent;
+class GHyperlinkEvent;
 class GKeyEvent;
 class GMouseEvent;
 class GObject;
+class GScrollEvent;
 class GServerEvent;
 class GTableEvent;
 class GTimerEvent;
@@ -190,7 +227,7 @@ public:
      * Usage: EventClassType eventClass = e.getEventClass();
      * -----------------------------------------------------
      * Returns the enumerated type constant indicating the class of the
-     * event.
+     * event, such as WINDOW_EVENT or ACTION_EVENT.
      */
     EventClassType getEventClass() const;
 
@@ -212,7 +249,9 @@ public:
      * Usage: EventType type = e.getEventType();
      * -----------------------------------------
      * Returns the enumerated type constant corresponding to the specific
-     * event type.
+     * event type.  The event type is a subcategory within the event class,
+     * such as MOUSE_RELEASED within the MOUSE_EVENT class or WINDOW_CLOSED
+     * within the WINDOW_EVENT class.
      */
     EventType getEventType() const;
 
@@ -360,8 +399,11 @@ private:
 
     /* Friend specifications */
     friend class GActionEvent;
+    friend class GChangeEvent;
+    friend class GHyperlinkEvent;
     friend class GKeyEvent;
     friend class GMouseEvent;
+    friend class GScrollEvent;
     friend class GServerEvent;
     friend class GTableEvent;
     friend class GTimerEvent;
@@ -445,7 +487,7 @@ GEvent waitForEvent(int mask = ANY_EVENT);
  *<pre>
  *    int main() {
  *       GWindow gw;
- *       GButton *button = new GButton("RED");
+ *       GButton* button = new GButton("RED");
  *       gw.addToRegion(button, "SOUTH");
  *       while (true) {
  *          GEvent e = waitForEvent(ACTION_EVENT | CLICK_EVENT);
@@ -464,11 +506,11 @@ public:
      * -------------------------------------------------------------
      * Creates a <code>GActionEvent</code> using the specified parameters.
      */
-    GActionEvent(EventType type, GObject *source, std::string actionCommand);
+    GActionEvent(EventType type, GObject* source, std::string actionCommand);
 
     /*
      * Method: getSource
-     * Usage: GObject *gobj = e.getSource();
+     * Usage: GObject* gobj = e.getSource();
      * -------------------------------------
      * Returns a pointer to the <code>GObject</code> that generated this event.
      */
@@ -493,6 +535,88 @@ public:
     /* Private section */
     GActionEvent();
     GActionEvent(GEvent e);
+};
+
+/*
+ * Class: GChangeEvent
+ * -------------------
+ * Change events that occur on an interactor with a state such as editable text.
+ */
+class GChangeEvent : public GEvent {
+public:
+    /*
+     * Constructor: GChangeEvent
+     * Usage: GChangeEvent changeEvent(type, source);
+     * ----------------------------------------------
+     * Creates a <code>GChangeEvent</code> with the specified type and source.
+     */
+    GChangeEvent(EventType type, GObject* source);
+
+    /*
+     * Method: getSource
+     * Usage: GObject* gobj = e.getSource();
+     * -------------------------------------
+     * Returns a pointer to the <code>GObject</code> that generated this event.
+     */
+    GObject* getSource() const;
+
+    /*
+     * Method: toString
+     * Usage: string str = e.toString();
+     * ---------------------------------
+     * Converts the event to a human-readable representation of the event.
+     */
+    std::string toString() const;
+
+    /* Private section */
+    GChangeEvent();
+    GChangeEvent(GEvent e);
+};
+
+/*
+ * Class: GHyperlinkEvent
+ * ----------------------
+ * Change events that occur when a user clicks a hyperlink on an interactor
+ * that allows linking, such as a GFormattedPane.
+ */
+class GHyperlinkEvent : public GEvent {
+public:
+    /*
+     * Constructor: GHyperlinkEvent
+     * Usage: GHyperlinkEvent hyperlinkEvent(type, source, url);
+     * ---------------------------------------------------------
+     * Creates a <code>GHyperlinkEvent</code> with the specified type,
+     * source interactor, and link URL.
+     */
+    GHyperlinkEvent(EventType type, GObject* source, const std::string& url);
+
+    /*
+     * Method: getSource
+     * Usage: GObject* gobj = e.getSource();
+     * -------------------------------------
+     * Returns a pointer to the <code>GObject</code> that generated this event.
+     */
+    GObject* getSource() const;
+
+    /*
+     * Method: getUrl
+     * Usage: string url = e.getUrl();
+     * -------------------------------
+     * Returns the URL of the link that was clicked.
+     */
+    std::string getUrl() const;
+
+    /*
+     * Method: toString
+     * Usage: string str = e.toString();
+     * ---------------------------------
+     * Converts the event to a human-readable representation of the event.
+     */
+    std::string toString() const;
+
+    /* Private section */
+    GHyperlinkEvent();
+    GHyperlinkEvent(GEvent e);
 };
 
 /*
@@ -666,7 +790,43 @@ public:
 };
 
 /*
- * Class: GWindowEvent
+ * Class: GScrollEvent
+ * -------------------
+ * Scroll events occur when the user scrolls a GScrollBar.
+ */
+class GScrollEvent : public GEvent {
+public:
+    /*
+     * Constructor: GScrollEvent
+     * Usage: GScrollEvent changeEvent(type, source);
+     * ----------------------------------------------
+     * Creates a <code>GScrollEvent</code> with the specified type and source.
+     */
+    GScrollEvent(EventType type, GObject* source);
+
+    /*
+     * Method: getSource
+     * Usage: GObject* gobj = e.getSource();
+     * -------------------------------------
+     * Returns a pointer to the <code>GObject</code> that generated this event.
+     */
+    GObject* getSource() const;
+
+    /*
+     * Method: toString
+     * Usage: string str = e.toString();
+     * ---------------------------------
+     * Converts the event to a human-readable representation of the event.
+     */
+    std::string toString() const;
+
+    /* Private section */
+    GScrollEvent();
+    GScrollEvent(GEvent e);
+};
+
+/*
+ * Class: GServerEvent
  * -------------------
  * Events that occur on a web server.
  */
@@ -674,9 +834,10 @@ class GServerEvent : public GEvent {
 public:
     /*
      * Constructor: GServerEvent
-     * Usage: GServerEvent serverEvent(type);
-     * --------------------------------------
-     * Creates a <code>GServerEvent</code> with the specified type.
+     * Usage: GServerEvent serverEvent(type, requestID, requestUrl);
+     * -------------------------------------------------------------
+     * Creates a <code>GServerEvent</code> with the specified type,
+     * request ID, and request URL.
      */
     GServerEvent(EventType type, int requestID, const std::string& requestUrl);
 
@@ -782,7 +943,7 @@ public:
      * -------------------------------------------
      * Creates a <code>GTimerEvent</code> for the specified timer.
      */
-    GTimerEvent(EventType type, const GTimer & timer);
+    GTimerEvent(EventType type, const GTimer& timer);
 
     /*
      * Method: getGTimer
