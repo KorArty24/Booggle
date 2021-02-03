@@ -89,6 +89,7 @@ bool Boggle::humanWordSearch(string word) {
     string shortWord;
     shortWord.push_back(word[0]);
     for (int i=1; i<word.length(); i++){
+        ClearBoard(markedSquares);
         if (FindWord(word,startp,word[i]))
             shortWord.push_back(word[i]);
     }
@@ -143,13 +144,16 @@ std::vector<int> Boggle::FindFirstLetter(string word){
 }
 
 bool Boggle::FindWord(string word, Point start, char ch){
-        char b=toupper(gameboard[start.getX()][start.getY()]);
-        if (b==ch) {return true;}
+
         bool Marked=isMarked(start) ;
         if (Marked) return false;
         MarkSquare(start);
         for (int dir=NORTH; dir!=EASTEAST; dir++){
-            FindWord(word, adjacentPoint(start,dir),ch);
+            char b=toupper(gameboard[start.getX()][start.getY()]);
+            if (b==ch) {return true;}
+            if (FindWord(word, adjacentPoint(start,dir),ch)){
+                return true;
+            }
         }
         UnmarkSquare(start);
         return false;
@@ -181,60 +185,61 @@ void Boggle::MarkSquare(Point point){
 void Boggle::UnmarkSquare(Point point){
     markedSquares.set(point.getX(),point.getY(),0);
     }
+
 Point Boggle::adjacentPoint(Point start, int direct){
 
     switch(direct){
-    case NORTH:
-        if (start.getX()>0) {
-        return Point(start.getX()-1,start.getY());
+
+    case SOUTH: if (start.getY()<gameboard.height()-1){
+            return Point(start.getX(),start.getY()+1);
         } else {
-            break;
-        }
+         break;
+     }
+
+     case NORTH:
+           if (start.getY()>0) {
+           return Point(start.getX(),start.getY()-1);
+           } else {
+               break;
+           }
     case SOUTHEAST:
-        if ((start.getX()<gameboard.height()-1)&&(start.getY()<gameboard.width()-1)){
-        return Point(start.getX()+1, start.getY()+1);
-        } else {
-            break;
-        }
+           if ((start.getY()<gameboard.height()-1)&&(start.getX()<gameboard.width()-1)){
+           return Point(start.getX()+1, start.getY()+1);
+           } else {
+               break;
+           }
     case SOUTHWEST:
-        if ((start.getX()<gameboard.height()-1)&&(start.getY()>0)){
-        return Point(start.getX()+1, start.getY()-1);
+           if ((start.getY()<gameboard.height()-1)&&(start.getX()>0)){
+           return Point(start.getX()-1, start.getY()+1);
+           } else {
+               break;
+           }
+       case NORTHEAST:
+           if ((start.getY()>0)&&(start.getX()<gameboard.width()-1)){
+           return Point(start.getX()+1, start.getY()-1);
+           } else {
+               break;
+           }
+       case NORTHWEST: if ((start.getX()>0)&&(start.getY()>0)){
+               return Point(start.getX()-1, start.getY()-1);
+           } else {
+               break;
+           }
+       case WEST: if (start.getX()>0){
+               return Point(start.getX()-1,start.getY());
+           } else {
+               break;
+           }
+
+       case EAST: if (start.getX()<gameboard.width()-1){
+               return Point(start.getX()+1,start.getY());
         } else {
             break;
         }
 
-    case NORTHEAST:
-        if ((start.getX()>0)&&(start.getY()<gameboard.width()-1)){
-        return Point(start.getX()-1, start.getY()+1);
-        } else {
-            break;
-        }
-
-
-    case NORTHWEST: if ((start.getX()>0)&&(start.getY()>0)){
-            return Point(start.getX()-1, start.getY()-1);
-        } else {
-            break;
-        }
-
-    case WEST: if (start.getY()>0){
-            return Point(start.getX(),start.getY()-1);
-        } else {
-            break;
-        }
-
-    case EAST: if (start.getY()<gameboard.width()-1){
-            return Point(start.getX(),start.getY()+1);}
-        else
-    case SOUTH: if (start.getX()<gameboard.height()-1){
-                    return Point(start.getX()+1,start.getY());
-        } else {
-                break;
-            }
-}
-    return start;
-
-}
+   }
+       return start;
+   }
 
 bool Boggle::isMarked(Point point){
 
@@ -243,4 +248,7 @@ bool Boggle::isMarked(Point point){
     } else {
         return false;
     }
+}
+void Boggle::ClearBoard(Grid<int> &gboard){
+    gboard.fill(0);
 }

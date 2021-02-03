@@ -33,6 +33,7 @@ public:
         bool isMarked(Point point);
         bool ComputerFindWord(Point start, int dir, string &word, Set<string> & result);
        void printgameboard(Grid<char> gboard);
+       void ClearBoard(Grid<int> &gboard);
 
     // TODO: add any other member functions/variables necessary
     friend ostream& operator<<(ostream& out, Boggle& boggle);
