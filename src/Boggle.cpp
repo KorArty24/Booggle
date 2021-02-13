@@ -99,26 +99,27 @@ bool Boggle::humanWordSearch(string word) {
 
 }
 
+Set<string> Boggle::computerWordSearch() {
+    Set<string> _result;
+    string word ="";
+        for(int i=0; i<gameboard.width(); i++){
+            for (int j=0; j<gameboard.height(); j++){
+                Point start(i,j);
+                //MarkSquare(start);
+                if (ComputerFindWord(start,word))
+                    _result.insert(word);
+                word="";
+            }
+        }
+        return _result;
+}
+
+
 int Boggle::getScoreHuman() {
     // TODO: implement
     return 0;   // remove this
 }
 
-Set<string> Boggle::computerWordSearch() {
-    Set<string> _result;
-    string word ="";
-        for(int i=0; i<gameboard.height(); i++){
-            for (int j=0; j<gameboard.width(); j++){
-                for (int dir=NORTH; dir!=EASTEAST; dir++){
-                Point start(i,j);
-                MarkSquare(start);
-                if (ComputerFindWord(start,dir,word,_result))
-                    _result.add(word);
-                word="";
-            }}
-        }
-        return _result;
-}
 
 int Boggle::getScoreComputer() {
     // TODO: implement
@@ -128,19 +129,6 @@ int Boggle::getScoreComputer() {
 ostream& operator<<(ostream& out, Boggle& boggle) {
     // TODO: implement
     return out;
-}
-
-std::vector<int> Boggle::FindFirstLetter(string word){
-   std::vector<int> point(2,0);
-        for (int row=0;row<gameboard.height();row++){
-        for (int col=0;col<gameboard.width();col++){
-            if (gameboard[row][col]==word.front()){
-               point[0]=(row);
-               point[1]=(col);
-            }
-        }
-    }
-        return point;
 }
 
 bool Boggle::FindWord(string word, Point start, char ch){
@@ -159,13 +147,26 @@ bool Boggle::FindWord(string word, Point start, char ch){
         return false;
 }
 
-bool Boggle::ComputerFindWord(Point start, int dir, string &word, Set<string> & result){
+bool Boggle::ComputerFindWord(Point start, string &word ){
+    bool Marked=isMarked(start) ;
+    if (Marked) return false;
+    MarkSquare(start);
     char ch=gameboard[start.getX()][start.getY()];
     word+=ch;
-    if (!wordExists(word)) return false;
-    if (wordExists(word)&&(word.length()>3)) return true;
-    if (ComputerFindWord(adjacentPoint(start,dir),dir,word,result)) return true;
-    MarkSquare(start);
+    if (!wordExists(word)) {
+        word.pop_back();
+        return false;
+    }
+    else if (word.length()>3) {
+        return true;
+    }
+    for (int dir=NORTH; dir!=EASTEAST; dir++){
+    if (ComputerFindWord(adjacentPoint(start,dir), word)){
+        return true;
+    }
+    }
+    word.pop_back();
+    UnmarkSquare(start);
     return false;
         }
 
@@ -208,6 +209,7 @@ Point Boggle::adjacentPoint(Point start, int direct){
            } else {
                break;
            }
+
     case SOUTHWEST:
            if ((start.getY()<gameboard.height()-1)&&(start.getX()>0)){
            return Point(start.getX()-1, start.getY()+1);
@@ -240,6 +242,19 @@ Point Boggle::adjacentPoint(Point start, int direct){
    }
        return start;
    }
+
+std::vector<int> Boggle::FindFirstLetter(string word){
+   std::vector<int> point(2,0);
+        for (int row=0;row<gameboard.height();row++){
+        for (int col=0;col<gameboard.width();col++){
+            if (gameboard[row][col]==word.front()){
+               point[0]=(row);
+               point[1]=(col);
+            }
+        }
+    }
+        return point;
+}
 
 bool Boggle::isMarked(Point point){
 

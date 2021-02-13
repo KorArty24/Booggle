@@ -31,7 +31,7 @@ public:
         bool FindWord(string word, Point start, char ch);
         void UnmarkSquare(Point point);
         bool isMarked(Point point);
-        bool ComputerFindWord(Point start, int dir, string &word, Set<string> & result);
+        bool ComputerFindWord(Point start, string &word);
        void printgameboard(Grid<char> gboard);
        void ClearBoard(Grid<int> &gboard);
 
