@@ -16,12 +16,12 @@ public:
         char getLetter(int row, int col);
         bool checkWord(string word);
         bool humanWordSearch(string word);
-        bool wordExists(string word);
-        Set<string> computerWordSearch();
+        Grid<char> gameboard;
+        std::set<string> computerWordSearch();
         int getScoreHuman();
         int getScoreComputer();
-        Grid<char> gameboard;
-        Grid<int> markedSquares;
+        bool wallexists(Grid<char> MarkedSquares, Point start);
+
         Lexicon _dictionary;
         string _boardText;
         //bool isMarked(int i, int j);
@@ -31,15 +31,19 @@ public:
         bool FindWord(string word, Point start, char ch);
         void UnmarkSquare(Point point);
         bool isMarked(Point point);
-        bool ComputerFindWord(Point start, string &word);
-       void printgameboard(Grid<char> gboard);
-       void ClearBoard(Grid<int> &gboard);
+        bool ComputerFindWord(Point start, string &word,set<string> &result);
+        void printgameboard(Grid<char> gboard);
+        void ClearBoard(Grid<char> &gboard);
 
     // TODO: add any other member functions/variables necessary
     friend ostream& operator<<(ostream& out, Boggle& boggle);
 
 private:
     Point adjacentPoint(Point start, int direct);
+    bool wordExists(string word);
+    bool ContainsPrefix(string word);
+
+    Grid<char> markedSquares;
 };
 
 #endif // _boggle_h

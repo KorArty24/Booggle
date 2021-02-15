@@ -16,7 +16,7 @@ void playOneGame(Lexicon& dictionary) {
     //dictionary.addWordsFromFile("dictionary.txt");
     std::string word;
     string wd="FYCLIOMGORILHJHU";
-    Set<string> words;
+    set<string> words;
     //string boardtext=getLine ("Enter the board text");
     //std::cout << boardtext;
     //std::cout << dictionary.size();
