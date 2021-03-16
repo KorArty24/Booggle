@@ -90,10 +90,10 @@ bool Boggle::humanWordSearch(string word) {
         //ClearBoard(markedSquares);
         if (FindWord(word,points.back(),word[i])){
             shortWord.push_back(word[i]);
-        }   else {
+        //}   else {
 //            i=i-1;
 //            shortWord.pop_back();
-        }
+      //  }
     }
     bool checkword = (shortWord==word)? true : false;
     if (checkword){
