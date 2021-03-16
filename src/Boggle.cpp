@@ -7,6 +7,7 @@
 #include "strlib.h"
 #include "grid.h"
 #include <vector>
+#include <bogglegui.h>
 
 enum directions {NORTH, SOUTHEAST,SOUTH, SOUTHWEST, WEST, EAST, NORTHEAST, NORTHWEST, EASTEAST};
 
@@ -17,8 +18,6 @@ static string CUBES[16] = {
     "DISTTY", "EEGHNW", "EEINSU", "EHRTVW",
     "EIOSST", "ELRTTY", "HIMNQU", "HLNNRZ"
 };
-
-
 
 // letters on every cube in 5x5 "Big Boggle" version (extension)
 static string BIG_BOGGLE_CUBES[25] = {
@@ -35,7 +34,6 @@ Boggle::Boggle(Lexicon& dictionary, string boardText) {
     gameboard.resize(4,4);
         _dictionary=dictionary;
         _boardText=boardText;
-
         shuffle(CUBES,16);
         if (boardText.empty()){
             for (int c=0; c<gameboard.width();c++){
@@ -77,50 +75,52 @@ bool Boggle::checkWord(string word) {
             return false;
         } else {
             return true;
-        }  // remove this
+        }
 }
 
 bool Boggle::humanWordSearch(string word) {
-
     if (!wordExists(word)) return false;
     int x=FindFirstLetter(word)[0];
     int y=FindFirstLetter(word)[1];
     Point startp(x,y);
+    points.add(startp);
     string shortWord;
     shortWord.push_back(word[0]);
     for (int i=1; i<word.length(); i++){
-        ClearBoard(markedSquares);
-        if (FindWord(word,startp,word[i]))
+        //ClearBoard(markedSquares);
+        if (FindWord(word,points.back(),word[i])){
             shortWord.push_back(word[i]);
+        }   else {
+//            i=i-1;
+//            shortWord.pop_back();
+        }
     }
-    if (shortWord==word) {return true;
-    } else
-    { return false; }
+    bool checkword = (shortWord==word)? true : false;
+    if (checkword){
+        for (Point p:points){
+            BoggleGUI::setHighlighted(p.getX(),p.getY(),true);
+        }
+    }
+    return checkword;
 }
 
 std::set<string> Boggle::computerWordSearch() {
     std::set<string> _result;
     string word ="";
-  //  foreach(char letter in gameboard) {
-    //    Point start=   }
         for(int i=0; i<gameboard.width(); i++){
             for (int j=0; j<gameboard.height(); j++){
                 Point start(i,j);
                 ClearBoard(markedSquares);
-                //MarkSquare(start);
                 ComputerFindWord(start,word,_result);
-                    //_result.insert(word);
             }
         }
         return _result;
 }
 
-
 int Boggle::getScoreHuman() {
     // TODO: implement
     return 0;   // remove this
 }
-
 
 int Boggle::getScoreComputer() {
     // TODO: implement
@@ -133,27 +133,28 @@ ostream& operator<<(ostream& out, Boggle& boggle) {
 }
 
 bool Boggle::FindWord(string word, Point start, char ch){
-
-        bool Marked=isMarked(start) ;
         if (isMarked(start)) return false;
         MarkSquare(start);
         for (int dir=NORTH; dir!=EASTEAST; dir++){
             char b=toupper(gameboard[start.getX()][start.getY()]);
-            if (b==ch) {return true;}
+            if (b==ch) {
+                points.add(start);
+                return true;
+            }
             if ((wallexists(markedSquares,adjacentPoint(start,dir)))
                  &&(FindWord(word, adjacentPoint(start,dir),ch))){
                 return true;
             }
         }
+
         UnmarkSquare(start);
         return false;
 }
 
 bool Boggle::ComputerFindWord(Point start, string &word, set<string> &result ){
-    bool Marked=isMarked(start) ;
+
     if (isMarked(start)) return false;
     MarkSquare(start);
-  //  cout<< markedSquares.toString2D() <<endl;
     char ch=gameboard[start.getX()][start.getY()];
     word+=ch;
     if (!ContainsPrefix(word)) {
@@ -165,30 +166,30 @@ bool Boggle::ComputerFindWord(Point start, string &word, set<string> &result ){
         result.emplace(word);
     }
     for (int dir=NORTH; dir!=EASTEAST; dir++){
-    if ((wallexists(markedSquares,adjacentPoint(start,dir))&&
-         (ComputerFindWord(adjacentPoint(start,dir), word, result)))){
-
-        return true;
-    }
+        if ((wallexists(markedSquares,adjacentPoint(start,dir))&&
+             (ComputerFindWord(adjacentPoint(start,dir), word, result)))){
+            return true;
+        }
     }
     word.pop_back();
     UnmarkSquare(start);
     return false;
-        }
+  }
 
 void Boggle::printgameboard(Grid<char> gboard){
    string board=gboard.toString2D();
    cout<< gboard;
 }
-bool Boggle::wordExists(string word) {
 
+bool Boggle::wordExists(string word) {
     if (_dictionary.contains(word)) {
         return true;
-    } else { return false; }
+    } else {
+        return false;
+    }
 }
 
 bool Boggle::ContainsPrefix(string word) {
-
     if (_dictionary.containsPrefix(word)) {
         return true;
     } else { return false; }
@@ -204,7 +205,6 @@ void Boggle::UnmarkSquare(Point point){
 Point Boggle::adjacentPoint(Point start, int direct){
 
     switch(direct){
-
     case NORTH: return Point(start.getX(),start.getY()-1);
     case SOUTHEAST: return Point(start.getX()+1,start.getY()+1);
     case SOUTH: return Point(start.getX(),start.getY()+1);

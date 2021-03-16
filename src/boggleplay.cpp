@@ -10,25 +10,33 @@
 #include <string>
 #include <Boggle.h>
 #include "simpio.h"
+#include <bogglegui.h>
 //using namespace std;
 void playOneGame(Lexicon& dictionary) {
     // TODO: implement
     //dictionary.addWordsFromFile("dictionary.txt");
     std::string word;
-    string wd="FYCLIOMGORILHJHU";
+    //string wd="FYCLIOMGORILHJHU";
     set<string> words;
-    //string boardtext=getLine ("Enter the board text");
-    //std::cout << boardtext;
+    string boardtext=getLine ("Enter the board text");
+    std::cout << boardtext <<endl;
     //std::cout << dictionary.size();
-    Boggle bogl(dictionary,wd);
-    std::string gameboard_content=bogl.gameboard.toString2D();
-    std::cout << gameboard_content << endl;
+    Boggle bogl(dictionary,boardtext);
+    if (!BoggleGUI::isInitialized()) {
+        BoggleGUI::initialize(bogl.gameboard.height(),bogl.gameboard.width());
+    }
+    BoggleGUI::labelAllCubes(boardtext);
+   // std::string gameboard_content=bogl.gameboard.toString2D();
+   // std::cout << gameboard_content << endl;
     while (true) {
-        std::cout << "Type a word (or Enter to stop):";
+        std::cout << "Type a word (or Enter to stop):" <<endl;
         std::getline (std::cin,word);
         word=toUpperCase(word);
         if ((word!="")&&(bogl.humanWordSearch(word))) {
             std::cout << "The word exists!" <<endl;
+            for (char c:word){
+
+            }
         } else if (word.length()==0) {
 
         } else {
@@ -40,12 +48,4 @@ void playOneGame(Lexicon& dictionary) {
             cout << w <<endl;
         }
     }
-
-
-   // std::cout << gameboard_content << endl;
-    //std::cout << bogl.gameboard.size() << endl;
-
-
-
-
 }
