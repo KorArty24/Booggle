@@ -19,7 +19,7 @@ public:
         int getScoreComputer();
         Lexicon _dictionary;
         string _boardText;
-        bool FindWord(string word, Point start, char ch);
+
         bool ComputerFindWord(Point start, string &word,set<string> &result);
         void printgameboard(Grid<char> gboard);
         void ClearBoard(Grid<char> &gboard);
@@ -31,6 +31,7 @@ public:
 
 private:
     Point adjacentPoint(Point start, int direct);
+    bool FindWord(string word, string &shortword, Point start, char ch);
     bool wordExists(string word);
     bool ContainsPrefix(string word);
     void UnmarkSquare(Point point);
@@ -40,7 +41,7 @@ private:
     bool findword(int i, int j, string word);
     char getLetter(int row, int col);
     bool checkWord(string word);
-    std::vector<int> FindFirstLetter(string word);
+    std::vector<Point> FindFirstLetter(string word);
     bool wallexists(Grid<char> MarkedSquares, Point start);
 
 

@@ -87,10 +87,11 @@ bool Boggle::humanWordSearch(string word) {
     string shortWord;
     shortWord.push_back(word[0]);
     for (int i=1; i<word.length(); i++){
-        //ClearBoard(markedSquares);
-        if (FindWord(word,points.back(),word[i])){
+        ClearBoard(markedSquares);
+        if (FindWord(word, shortWord, points.back(),word[i])){
             shortWord.push_back(word[i]);
-        //}   else {
+            }
+            //   else {
 //            i=i-1;
 //            shortWord.pop_back();
       //  }
@@ -132,9 +133,11 @@ ostream& operator<<(ostream& out, Boggle& boggle) {
     return out;
 }
 
-bool Boggle::FindWord(string word, Point start, char ch){
-        if (isMarked(start)) return false;
-        MarkSquare(start);
+bool Boggle::FindWord(string word, string &shortword, Point start, char ch){
+    shortword.push_back(ch);
+    if (isMarked(start)) return false;
+    if (word.substr(0,shortword.length())!=shortword) return false;
+     MarkSquare(start);
         for (int dir=NORTH; dir!=EASTEAST; dir++){
             char b=toupper(gameboard[start.getX()][start.getY()]);
             if (b==ch) {
@@ -142,11 +145,13 @@ bool Boggle::FindWord(string word, Point start, char ch){
                 return true;
             }
             if ((wallexists(markedSquares,adjacentPoint(start,dir)))
-                 &&(FindWord(word, adjacentPoint(start,dir),ch))){
+                 &&(FindWord(word,shortword, adjacentPoint(start,dir),ch))){
+                shortword.push_back(ch);
                 return true;
             }
         }
-
+        points.pop_back();
+        shortword.pop_back();
         UnmarkSquare(start);
         return false;
 }
@@ -217,17 +222,17 @@ Point Boggle::adjacentPoint(Point start, int direct){
        return start;
    }
 
-std::vector<int> Boggle::FindFirstLetter(string word){
-   std::vector<int> point(2,0);
+std::vector<Point> Boggle::FindFirstLetter(string word){
+   std::vector<Point> vpoints;
         for (int row=0;row<gameboard.height();row++){
         for (int col=0;col<gameboard.width();col++){
             if (gameboard[row][col]==word.front()){
-               point[0]=(row);
-               point[1]=(col);
+               Point pt(row,col);
+               vpoints.emplace_back(pt);
             }
         }
     }
-        return point;
+        return vpoints;
 }
 
 bool Boggle::isMarked(Point point){
