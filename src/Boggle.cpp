@@ -80,29 +80,29 @@ bool Boggle::checkWord(string word) {
 
 bool Boggle::humanWordSearch(string word) {
     if (!wordExists(word)) return false;
-    int x=FindFirstLetter(word)[0];
-    int y=FindFirstLetter(word)[1];
-    Point startp(x,y);
-    points.add(startp);
-    string shortWord;
-    shortWord.push_back(word[0]);
-    for (int i=1; i<word.length(); i++){
-        ClearBoard(markedSquares);
-        if (FindWord(word, shortWord, points.back(),word[i])){
-            shortWord.push_back(word[i]);
+    Point startp;
+    for (int i=0; i<FindFirstLetter(word).size();i++){
+        startp=FindFirstLetter(word)[0];
+        points.add(startp);
+        string shortWord;
+        shortWord.push_back(word[0]);
+        for (int i=1; i<word.length(); i++){
+            ClearBoard(markedSquares);
+            if (FindWord(word, shortWord, points.back(),word[i])){
+                shortWord.push_back(word[i]);
+            } else {
+                if (i==0) return false;
+                if (i>=1) i--;
             }
-            //   else {
-//            i=i-1;
-//            shortWord.pop_back();
-      //  }
-    }
-    bool checkword = (shortWord==word)? true : false;
-    if (checkword){
-        for (Point p:points){
-            BoggleGUI::setHighlighted(p.getX(),p.getY(),true);
         }
+        bool checkword = (shortWord==word)? true : false;
+        if (checkword){
+            for (Point p:points){
+                BoggleGUI::setHighlighted(p.getX(),p.getY(),true);
+            }
+        }
+        return checkword;
     }
-    return checkword;
 }
 
 std::set<string> Boggle::computerWordSearch() {
@@ -134,7 +134,7 @@ ostream& operator<<(ostream& out, Boggle& boggle) {
 }
 
 bool Boggle::FindWord(string word, string &shortword, Point start, char ch){
-    shortword.push_back(ch);
+    //shortword.push_back(ch);
     if (isMarked(start)) return false;
     if (word.substr(0,shortword.length())!=shortword) return false;
      MarkSquare(start);
@@ -236,7 +236,6 @@ std::vector<Point> Boggle::FindFirstLetter(string word){
 }
 
 bool Boggle::isMarked(Point point){
-
     int t=markedSquares[point.getX()][point.getY()];
     if (t=='X') {return true;
     } else {
