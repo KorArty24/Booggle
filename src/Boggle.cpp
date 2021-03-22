@@ -82,28 +82,21 @@ bool Boggle::humanWordSearch(string word) {
     if (!wordExists(word)) return false;
     Point startp;
     for (int i=0; i<FindFirstLetter(word).size();i++){
-        startp=FindFirstLetter(word)[0];
+        startp=FindFirstLetter(word)[i];
         points.add(startp);
         string shortWord;
-        shortWord.push_back(word[0]);
-        for (int i=1; i<word.length(); i++){
-            ClearBoard(markedSquares);
-            if (FindWord(word, shortWord, points.back(),word[i])){
-                shortWord.push_back(word[i]);
-            } else {
-                if (i==0) return false;
-                if (i>=1) i--;
-            }
-        }
-        bool checkword = (shortWord==word)? true : false;
-        if (checkword){
+      //  shortWord.push_back(gameboard[startp.getX()][startp.getY()]);
+        if (FindWord(word, shortWord, startp)){
             for (Point p:points){
                 BoggleGUI::setHighlighted(p.getX(),p.getY(),true);
+        }
+            ClearBoard(gameboard);
+            points.clear();
+            return true;
             }
         }
-        return checkword;
+    return false;
     }
-}
 
 std::set<string> Boggle::computerWordSearch() {
     std::set<string> _result;
@@ -133,21 +126,27 @@ ostream& operator<<(ostream& out, Boggle& boggle) {
     return out;
 }
 
-bool Boggle::FindWord(string word, string &shortword, Point start, char ch){
-    //shortword.push_back(ch);
+bool Boggle::FindWord(string word, string shortword, Point start){
+
     if (isMarked(start)) return false;
-    if (word.substr(0,shortword.length())!=shortword) return false;
+    int x=start.getX();
+    int y=start.getY();
+    char b=toupper(gameboard[x][y]);
+    shortword.push_back(b);
+    string substr=word.substr(0,shortword.length());
+    if (shortword!=substr){
+        shortword.pop_back();
+        points.pop_back();
+        return false;
+    }
      MarkSquare(start);
-        for (int dir=NORTH; dir!=EASTEAST; dir++){
-            char b=toupper(gameboard[start.getX()][start.getY()]);
-            if (b==ch) {
-                points.add(start);
-                return true;
-            }
-            if ((wallexists(markedSquares,adjacentPoint(start,dir)))
-                 &&(FindWord(word,shortword, adjacentPoint(start,dir),ch))){
-                shortword.push_back(ch);
-                return true;
+     for (int dir=NORTH; dir!=EASTEAST; dir++){
+         points.add(start);
+         if (shortword==word) return true;
+         Point pt=adjacentPoint(start,dir);
+         if ((wallexists(markedSquares, pt))
+                 &&(FindWord(word,shortword, pt))){
+             return true;
             }
         }
         points.pop_back();
